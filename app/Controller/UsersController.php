@@ -14,16 +14,30 @@ class UsersController extends AppController {
     public function login() {
         if ($this->request->is('post')) {
             $username = $this->data['User']['username'];
-            
-            if ($this->User->isBlocked($username)) {
-                $this->Session->setFlash(__($username.' blocked, try again after 10 seconds'));
-            } else {
+            $attempts = $this->User->attempts($username);
+            $blocked = false;
+            if ($attempts > 2) {
+                $blocked = true;
+                $now = time();
+                if ($now - strtotime($this->User->last_attempt($username)) > 10) {
+                    $this->User->reset_attempts($username);
+                    $blocked = false;
+                } else {
+                    $this->User->fail($username);
+                    $this->Session->setFlash(__($username . ' blocked, try again after 10 seconds'));                    
+                }
+            }
+            if (!$blocked) {
                 if ($this->Auth->login()) {
-                    $this->User->success($username);
+                    $this->User->reset_attempts($username);
                     return $this->redirect($this->Auth->redirectUrl());
                 }
-                $this->User->fail($username);
-                $this->Session->setFlash(__('Invalid username or password, try again'));
+                $attempts = $this->User->fail($username);
+                if ($attempts > 2) {
+                    $this->Session->setFlash(__($username . ' blocked, try again after 10 seconds'));
+                } else {
+                    $this->Session->setFlash(__('Invalid username or password, try again'));
+                }
             }
         }
     }

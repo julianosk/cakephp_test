@@ -41,12 +41,11 @@ class User extends AppModel {
     
     public function isBlocked($username) {
         $user = $this->findByUsername($username);
-//        return $user['User']['blocked'];
-        if ($user['User']['blocked']){
+        if ($user['User']['attempts'] > 1){
             $now = time();
             if ($now - strtotime($user['User']['last_attempt']) > 10){
                 $this->updateAll(
-                    array('User.blocked' => false, 'User.attempts' => 0),
+                    array('User.attempts' => 0),
                     array('User.username' => $username)
                 );
                 return false;
@@ -56,33 +55,26 @@ class User extends AppModel {
         return false;
     }
     
-    public function diff($username) {
-        $user = $this->findByUsername($username);
-        if ($user['User']['blocked']){
-            $now = time();
-            return $now - strtotime($user['User']['last_attempt']);
-        }
-        return 0;
+    public function last_attempt($username) {
+        return $this->findByUsername($username)['User']['last_attempt'];
+    }
+    
+    public function attempts($username) {
+        return $this->findByUsername($username)['User']['attempts'];
     }
     
     public function fail($username) {
         $this->updateAll(
-            array('User.attempts' => 'User.attempts + 1'),
+            array('User.attempts' => 'User.attempts + 1', 'User.last_attempt' => 'NOW()'),
             array('User.username' => $username)
         );
-        if ($this->findByUsername($username)['User']['attempts'] > 1) {
-            $date = date("Y-m-d H:i:s");
-            $this->updateAll(
-                array('User.blocked' => true, 'User.last_attempt' => 'NOW()'),
-                array('User.username' => $username)
-            );
-        }        
+        return $this->findByUsername($username)['User']['attempts'];
     }
     
     
-    public function success($username) {
+    public function reset_attempts($username) {
         $this->updateAll(
-            array('User.blocked' => false, 'User.attempts' => 0),
+            array('User.attempts' => 0),
             array('User.username' => $username)
         );
     }
