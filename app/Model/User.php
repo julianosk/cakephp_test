@@ -39,22 +39,6 @@ class User extends AppModel {
         return true;
     }
     
-    public function isBlocked($username) {
-        $user = $this->findByUsername($username);
-        if ($user['User']['attempts'] > 1){
-            $now = time();
-            if ($now - strtotime($user['User']['last_attempt']) > 10){
-                $this->updateAll(
-                    array('User.attempts' => 0),
-                    array('User.username' => $username)
-                );
-                return false;
-            }
-            return true;
-        }
-        return false;
-    }
-    
     public function last_attempt($username) {
         return $this->findByUsername($username)['User']['last_attempt'];
     }
